@@ -2,17 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System;
 using Unity.VisualScripting;
-using Microsoft.Unity.VisualStudio.Editor;
 using UnityEditor;
-using UnityEngine.UIElements;
-using Palmmedia.ReportGenerator.Core;
-using UnityEngine.XR;
-using System.Xml;
 using System.Linq;
-using static UnityEditor.Experimental.GraphView.Port;
 
 
 /**************************************************************************
@@ -87,7 +80,7 @@ public class Generator : MonoBehaviour
 
                 EditorGUILayout.Space(5);
                 generator.heightMapPath = EditorGUILayout.DelayedTextField("Path", generator.heightMapPath);
-                generator.maximumHeight = EditorGUILayout.DelayedIntField("Maxmimum Height", generator.maximumHeight);
+                generator.maximumHeight = EditorGUILayout.DelayedIntField("Maximum Height", generator.maximumHeight);
                 generator.scaleHeight = EditorGUILayout.Slider("Scale Height", generator.scaleHeight, 0f, 1f);
                 generator.invertHeight = EditorGUILayout.Toggle("Invert Height", generator.invertHeight);
 
@@ -320,7 +313,8 @@ public class Generator : MonoBehaviour
     {
         public string name;
         public Color mappedColor;
-        public float colorTolerance = 1.5f;
+        [Range(1.0f, 1.5f)]
+        public float colorTolerance = 1.01f;
 
         public bool usePrefab = false;
         public GameObject prefab;
@@ -394,13 +388,13 @@ public class Generator : MonoBehaviour
         // Checks If Heightmap Path Is Empty
         if (heightMapPath == "")
         {
-            throw new Exception("The Heightmap Path is empyty. \nEvironment can not be Generated.");
+            throw new Exception("The Heightmap Path is empty. \nEnvironment can not be generated.");
         }
 
         // Checks If There Is a File At The Given Path
         if (!File.Exists(heightMapPath))
         {
-            throw new Exception($"The Heightmap at the path \"{heightMapPath}\" does not exist. \nEvironment can not be Generated.");
+            throw new Exception($"The Heightmap at the path \"{heightMapPath}\" does not exist. \nEnvironment can not be generated.");
         }
 
         // Initilize Texture2D Object Of Our Heightmap (Height And Width Will Be Overwritten Later)
@@ -491,13 +485,13 @@ public class Generator : MonoBehaviour
         // Checks If Texture Path Is Empty
         if (textureMapPath == "")
         {
-            throw new Exception("The Texture Path is empty. \nEvironment can not be Generated.");
+            throw new Exception("The Texture Path is empty. \nEnvironment can not be generated.");
         }
 
         // Checks If There Is a File At The Given Path
         if (!File.Exists(textureMapPath))
         {
-            throw new Exception($"The Texture at the path \"{textureMapPath}\" does not exist. \nEvironment can not be Generated.");
+            throw new Exception($"The Texture at the path \"{textureMapPath}\" does not exist. \nEnvironment can not be generated.");
         }
 
         // Initilize Texture2D Object Of Our Texture (Height And Width Will Be Overwritten Later)
@@ -522,13 +516,13 @@ public class Generator : MonoBehaviour
         // Checks If Texture Path Is Empty
         if (objectsMapPath == "")
         {
-            throw new Exception("The Objects Path is empty. \nEvironment can not be Generated.");
+            throw new Exception("The Objects Path is empty. \nEnvironment can not be generated.");
         }
 
         // Checks If There Is a File At The Given Path
         if (!File.Exists(objectsMapPath))
         {
-            throw new Exception($"The Texture at the path \"{objectsMapPath}\" does not exist. \nEvironment can not be Generated.");
+            throw new Exception($"The Texture at the path \"{objectsMapPath}\" does not exist. \nEnvironment can not be generated.");
         }
 
         // Initilize Texture2D Object Of Our Texture (Height And Width Will Be Overwritten Later)
@@ -555,7 +549,7 @@ public class Generator : MonoBehaviour
         }
         terrain.materialTemplate.mainTexture = terrainTexture;
 
-        Debugger("Objects where applied.");
+        Debugger("Objects were applied.");
     }
 
 
@@ -588,30 +582,33 @@ public class Generator : MonoBehaviour
     // Rotates the given Texture a certain Amount of Degrees
     private Texture2D RotateTexture(Texture2D texture, Grad rotateXDegrees)
     {
-        Debugger("### Rotate Texture ###");
-
-        // Goes Through The Rotation Of 90 Degrees The Needed Amount
-        for (int x = (int)rotateXDegrees; x > 0; x--)
+        if (rotateXDegrees != 0)
         {
-            Color32[] originalPixels = texture.GetPixels32();
-            Color32[] rotatedPixels = new Color32[originalPixels.Length];
+            Debugger("### Rotate Texture ###");
 
-            // Loop through all Pixels
-            for (int i = 0; i < texture.width; ++i)
+            // Goes Through The Rotation Of 90 Degrees The Needed Amount
+            for (int x = (int)rotateXDegrees; x > 0; x--)
             {
-                for (int y = 0; y < texture.height; ++y)
+                Color32[] originalPixels = texture.GetPixels32();
+                Color32[] rotatedPixels = new Color32[originalPixels.Length];
+
+                // Loop through all Pixels
+                for (int i = 0; i < texture.width; ++i)
                 {
-                    // Take a Pixel, Rotate it 90 degrees and Safes it at the new Position
-                    rotatedPixels[(y + 1) * texture.width - i - 1] = originalPixels[originalPixels.Length - 1 - (i * texture.height + y)];
+                    for (int y = 0; y < texture.height; ++y)
+                    {
+                        // Take a Pixel, Rotate it 90 degrees and Safes it at the new Position
+                        rotatedPixels[(y + 1) * texture.width - i - 1] = originalPixels[originalPixels.Length - 1 - (i * texture.height + y)];
+                    }
                 }
+
+                // Set the turned pixels to the new texture
+                texture.SetPixels32(rotatedPixels);
+                texture.Apply();
             }
 
-            // Set the turned pixels to the new texture
-            texture.SetPixels32(rotatedPixels);
-            texture.Apply();
+            Debugger($"Texture was rotated.");
         }
-
-        Debugger("Texture was rotated.");
         return texture;
     }
 
@@ -638,7 +635,7 @@ public class Generator : MonoBehaviour
         texture.Apply();
 
 
-        Debugger("Texture was rotated.");
+        Debugger("Texture was mirrored.");
         return texture;
     }
 
