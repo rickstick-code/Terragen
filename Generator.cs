@@ -9,7 +9,7 @@ using System.Linq;
 
 
 /**************************************************************************
-             Date Last Changed: 24.11.2023 - Version 2.1
+             Date Last Changed: 05.01.2024 - Version 2.2
 
 Author: Frederick Van Bockryck, Jakob Schöllauf, Florian Waltersdorfer
 
@@ -348,7 +348,7 @@ public class Generator : MonoBehaviour
         DestroyImmediate(GetComponent<TerrainCollider>());
 
         // Destroy All Natural Objects
-        foreach (GameObject gameobject in FindObjectsOfType<GameObject>().Where(x => x.name.Contains("GeneratedObjectTerraGen"))) { DestroyImmediate(gameobject); };
+        foreach(Transform tmp in transform) { Destroy(tmp.gameObject); };
 
         // Generates Everything
         Handler(heightMapPath, maximumHeight, invertHeight, scaleHeight, rotateXDegrees, mirrorTexture, useCustomMaterial,
@@ -671,15 +671,15 @@ public class Generator : MonoBehaviour
                 if (naturalObject.usePrefab)
                 {
                     // Create An Name The Object
-                    GameObject objekt = Instantiate(naturalObject.prefab);
-                    objekt.name = "GeneratedObjectTerraGen";
+                    GameObject object = Instantiate(naturalObject.prefab, transform);
+                    object.name = "GeneratedObjectTerraGen_" + naturalObject.name;
 
                     // Choose A Random Position Within Tile
                     int v = UnityEngine.Random.Range(start_i, start_i + tileSize);
                     int w = UnityEngine.Random.Range(start_y, start_y + tileSize);
 
                     // Insert Object In That Position And Give It The Right Height
-                    objekt.transform.position = new Vector3(v, terrain.terrainData.GetHeight(v, w), w);
+                    object.transform.position = new Vector3(v, terrain.terrainData.GetHeight(v, w), w);
                 }
 
                 if (naturalObject.useTexture)
