@@ -9,18 +9,22 @@ using System.Linq;
 
 
 /**************************************************************************
-             Date Last Changed: 05.01.2024 - Version 2.2
+                Date Last Changed: 19.01.2024 - Version 2.3
 
-Author: Frederick Van Bockryck, Jakob Schöllauf, Florian Waltersdorfer
+Authors: Frederick Van Bockryck, Jakob Schöllauf, Florian Waltersdorfer
 
-TODO - The next few Lines should have a description of what the script does and 
-how it works. I still have to do that.
+This C# script enables the quick and easy generation of terrain in Unity
+based on hightmaps. Additionally it allows the aplication of a custom
+texture and material to the terrain as well as populating the terrain with
+objects designated by the user.
 
+For detailed instructions on utilizing the generator, please refer to the
+documentation available under: https://github.com/rickstick-code/Terragen
 **************************************************************************/
 public class Generator : MonoBehaviour
 {
 
-    // This Class Enables A Better User Expierence In The Editor
+    // This class serves to improve the user expierence in the editor
     #if UNITY_EDITOR
     [CustomEditor(typeof(Generator))]
     public class GeneratorEditor : Editor
@@ -37,17 +41,17 @@ public class Generator : MonoBehaviour
             base.OnInspectorGUI();
             serializedObject.Update();
 
-            // Get The Attributes Of The Main Script Available
+            // Get the attributes of the Generator.cs script
             Generator generator = (Generator)target;
 
-            // This Is The Header
+            // This is the header
             EditorGUILayout.Space(30);
             EditorGUILayout.LabelField("General Settings", EditorStyles.boldLabel);
 
-            // Start Tracking Of Changes
+            // Start tracking changes made in the UI
             EditorGUI.BeginChangeCheck();
 
-            // These Are The Toogles for Individual Setting Groups
+            // These are the toggles for individual setting groups
             EditorGUIUtility.labelWidth = 240;
             EditorGUI.indentLevel++;
 
@@ -64,17 +68,17 @@ public class Generator : MonoBehaviour
             EditorGUI.indentLevel--;
 
 
-            // These Are The Heightmap Settings
+            // These are the heightmap settings
             if (generator.showHeightmapSettings)
             {
                 EditorGUILayout.Space(30);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1, GUILayout.Width(300)), new Color(0.5f, 0.5f, 0.5f, 1));
 
-                // This Is The Header
+                // This is the header
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Heightmap Settings", EditorStyles.boldLabel);
 
-                // These Are the Individual Settings
+                // These are the individual settings for the heightmap
                 EditorGUIUtility.labelWidth = 150;
                 EditorGUI.indentLevel++;
 
@@ -88,17 +92,17 @@ public class Generator : MonoBehaviour
                 EditorGUI.indentLevel--;
             }
 
-            // These Are The Texture Settings
+            // These are the texture settings
             if (generator.useCustomTexture)
             {
                 EditorGUILayout.Space(30);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1, GUILayout.Width(300)), new Color(0.5f, 0.5f, 0.5f, 1));
 
-                // This Is The Header
+                // This is the header
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Texture Settings", EditorStyles.boldLabel);
 
-                // These Are the Individual Settings
+                // These are the individual settings for the custom texture
                 EditorGUIUtility.labelWidth = 110;
                 EditorGUI.indentLevel++;
 
@@ -110,17 +114,17 @@ public class Generator : MonoBehaviour
                 EditorGUI.indentLevel--;
             }
 
-            // These Are The Material Settings
+            // These are the material settings
             if (generator.useCustomMaterial)
             {
                 EditorGUILayout.Space(30);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1, GUILayout.Width(300)), new Color(0.5f, 0.5f, 0.5f, 1));
 
-                // This Is The Header
+                // This is the header
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Material Settings", EditorStyles.boldLabel);
 
-                // These Are the Individual Settings
+                // These are the individual settings for the custom material
                 EditorGUIUtility.labelWidth = 120;
                 EditorGUI.indentLevel++;
 
@@ -130,17 +134,17 @@ public class Generator : MonoBehaviour
                 EditorGUI.indentLevel--;
             }
 
-            // These Are The Natural Objects Settings
+            // These are the natural object settings
             if (generator.useCustomObjects)
             {
                 EditorGUILayout.Space(30);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1, GUILayout.Width(300)), new Color(0.5f, 0.5f, 0.5f, 1));
 
-                // This Is The Header
+                // This is the header
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Natural Objects Settings", EditorStyles.boldLabel);     
 
-                // These Are the Individual Settings
+                // These are the individual settings for natural objects
                 EditorGUIUtility.labelWidth = 120;
                 EditorGUI.indentLevel++;
 
@@ -148,7 +152,7 @@ public class Generator : MonoBehaviour
                 generator.objectsMapPath = EditorGUILayout.DelayedTextField("Path For Map", generator.objectsMapPath);
                 generator.objectDensity = EditorGUILayout.Slider("Object Density", generator.objectDensity, 0.10f, 5f);
 
-                // Option To Collapse And Add Natural Objects
+                // An option to collapse and add natural objects
                 GUILayout.BeginHorizontal();
                 generator.showIndividualObjects = EditorGUILayout.Foldout(generator.showIndividualObjects, "Objects", true);
                 if (GUILayout.Button("Add Object"))
@@ -178,7 +182,7 @@ public class Generator : MonoBehaviour
                         EditorGUILayout.PropertyField(element.FindPropertyRelative("mappedColor"), new GUIContent("Mapped Color"));
                         EditorGUILayout.PropertyField(element.FindPropertyRelative("colorTolerance"), new GUIContent("Color Tolerance"));
 
-                        // Settings For Prefab
+                        // Prefab settings
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.PropertyField(element.FindPropertyRelative("usePrefab"), new GUIContent("Use Prefab"));
                         if (element.FindPropertyRelative("usePrefab").boolValue)
@@ -187,7 +191,7 @@ public class Generator : MonoBehaviour
                         }
                         GUILayout.EndHorizontal();
 
-                        // Settings For Texture
+                        // Texture settings
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.PropertyField(element.FindPropertyRelative("useTexture"), new GUIContent("Use Texture"));
                         if (element.FindPropertyRelative("useTexture").boolValue)
@@ -204,16 +208,16 @@ public class Generator : MonoBehaviour
                 EditorGUI.indentLevel--;
             }
 
-            // Save The State Of Serialized Objects
+            // Save the state of serialized objects
             serializedObject.ApplyModifiedProperties();
 
-            // Check For Changes
+            // Check for changes
             if (EditorGUI.EndChangeCheck() && generator.buildAfterChange)
             {
                 generator.Generate();
             }
 
-            // This Is The Credits
+            // These are the credits
             EditorGUILayout.Space(50);
             EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1, GUILayout.Width(300)), new Color(0.5f, 0.5f, 0.5f, 1));
             EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1, GUILayout.Width(300)), new Color(0.5f, 0.5f, 0.5f, 1));
@@ -223,11 +227,11 @@ public class Generator : MonoBehaviour
             GUIStyle creditStyle = new GUIStyle(EditorStyles.label);
             creditStyle.fontSize = 10;
 
-            // This Is The Header 
+            // This is the credits' header
             creditStyle.fontStyle = FontStyle.Bold;
             EditorGUILayout.LabelField("Credits", creditStyle);
 
-            // This Is The Main Body
+            // This is the credits' main body
             creditStyle.wordWrap = true;
             creditStyle.fontStyle = FontStyle.Italic;
             EditorGUILayout.LabelField("This script was created as part of a lecture at the University of Applied Sciences FH JOANNEUM. " +
@@ -259,7 +263,7 @@ public class Generator : MonoBehaviour
         }
     }
 #endif
-    // All Neccessary Variables (The Have To Be Serialized Or Public To Keep Their Changed State In The Custom Inspector)
+    // All neccessary variables (Variables must be serialized or public in order to keep their changed state in the custom inspector)
     [HideInInspector]
     public bool showDebugging = true;
 
@@ -323,7 +327,7 @@ public class Generator : MonoBehaviour
     }
 
 
-    // If Given Option Is Turned On Debug Messages Will Be Displayed
+    // If this option is turned on debug messages will be displayed
     private void Debugger(string text)
     {
         if (showDebugging)
@@ -332,7 +336,7 @@ public class Generator : MonoBehaviour
         }
     }
 
-    // The Normal Start Function That Gets Called the First Time The Script Gets Loaded
+    // This is a normal start function that gets called the first time the script is loaded
     private void Start()
     {
         Generate();
@@ -343,21 +347,21 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Start Generating ###");
 
-        // Destroys Old Components
+        // Destroys old components
         DestroyImmediate(GetComponent<Terrain>());
         DestroyImmediate(GetComponent<TerrainCollider>());
 
-        // Destroy All Natural Objects
+        // Destroy all natural objects
         foreach(Transform tmp in transform) { Destroy(tmp.gameObject); };
 
-        // Generates Everything
+        // Generates everything that was selected in the generator's settings
         Handler(heightMapPath, maximumHeight, invertHeight, scaleHeight, rotateXDegrees, mirrorTexture, useCustomMaterial,
             customMaterial, useCustomTexture, textureMapPath, useCustomObjects, naturalObjects, objectsMapPath, objectDensity);
 
         Debugger("Finished Generating");
     }
 
-    // This Method Handles The Complete Generation And Can Be Called Manually From Another Script With Every Setting Available
+    // This method handles the entire generation process and can be called manually from another script with all available settings
     public void Handler(string heightMapPath, int maximumHeight = 300, bool invertHeight = false, float scaleHeight = 1, Grad rotateXDegrees = 0, bool mirrorTexture = false,
         bool useCustomMaterial = false, Material customMaterial = null, bool useCustomTexture = false, string textureMapPath = "",
         bool useCustomObjects = false, List<Element> naturalObjects = null,  string objectsMapPath = "", float objectDensity = 0.25f)
@@ -375,7 +379,7 @@ public class Generator : MonoBehaviour
         }
         catch (Exception exception)
         {
-            // Displays the Given Message In Case Of An Error
+            // Displays the given message if an error occurs
             Debugger(exception.Message);
         }
         
@@ -385,23 +389,23 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Load Heightmap ###");
 
-        // Checks If Heightmap Path Is Empty
+        // Checks if the heightmap path is empty
         if (heightMapPath == "")
         {
             throw new Exception("The Heightmap Path is empty. \nEnvironment can not be generated.");
         }
 
-        // Checks If There Is a File At The Given Path
+        // Checks if there is a file at the given path
         if (!File.Exists(heightMapPath))
         {
             throw new Exception($"The Heightmap at the path \"{heightMapPath}\" does not exist. \nEnvironment can not be generated.");
         }
 
-        // Initilize Texture2D Object Of Our Heightmap (Height And Width Will Be Overwritten Later)
+        // Initilize Texture2D object of the heightmap (height and width will later be overwritten)
         Texture2D heightmap = new Texture2D(1, 1);
 
-        // We Read In The Raw Bytes Of The Heightmap Image And Convert It To Be Able To Handle
-        // Certain Aspects Better (Compression, Width, Height, Bit Depth, Etc.)
+        // The raw bytes of the heightmap image are read and converted for better handling of
+        // certain aspects (compression, width, height, bit depth, etc.)
         heightmap.LoadImage(File.ReadAllBytes(heightMapPath));
         return MakeItSquare(heightmap, Mathf.NextPowerOfTwo(Mathf.Max(heightmap.width, heightmap.height)));
     }
@@ -411,17 +415,17 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Create Terrain ###");
 
-        // Create The Terrain Object
+        // Create the Terrain Object
         Terrain terrain = gameObject.AddComponent<Terrain>();
 
-        // Create Terrain Data
+        // Create the Terrain Data
         TerrainData terrainData = new TerrainData();
 
-        // Set The Terrain Attributes
+        // Set the Terrain Attributes
         terrainData.heightmapResolution = heightmap.width + 1;
         terrainData.size = new Vector3(heightmap.width, maximumHeight, heightmap.height);
 
-        // Assigns The Terrain Data Object
+        // Assign the Terrain Data to the Terrain Object
         terrain.terrainData = terrainData;
 
         
@@ -432,24 +436,24 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Apply Heightmap ###");
 
-        // Initiliaze a 2D Array for the Heightdata
+        // Initiliaze a 2D array for the height data
         float[,] data = new float[heightmap.width, heightmap.height];
 
-        // Loops through all the Pixels in the Heightmap
+        // Loops through all the Pixels in the heightmap
         for (int i = 0; i < heightmap.width; i++)
         {
             for (int y = 0; y < heightmap.height; y++)
             {
-                // Reads out the Value of the Heightmap at a Certain Pixel and 
-                // puts it in to the Heightdata Array (Inverts the given Pixel if Neccesary)
+                // Reads out the value of the heightmap at a certain pixel and puts it into
+                // the array containing the height data (inverts the given pixel if neccesary)
                 data[i, y] = Mathf.Clamp01((invertHeight ? (1 - heightmap.GetPixel(i, y).grayscale) :
                     (heightmap.GetPixel(i, y).grayscale)) * scaleHeight);
             }
         }
-        // Assigns Height Data
+        // Assigns the height data to the Terrain Object
         terrain.terrainData.SetHeights(0, 0, data);
 
-        // Create TerrainCollider and Adapt it to the Current Terrain
+        // Create the TerrainCollider and adapt it to the current terrain
         TerrainCollider collider = terrain.AddComponent<TerrainCollider>();
         collider.terrainData = terrain.terrainData;
 
@@ -460,7 +464,7 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Apply Material ###");
 
-        // Checking for custom Materials
+        // Check for custom materials
         if (useCustomMaterial)
         {
             if (customMaterial != null)
@@ -479,26 +483,26 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Apply Texture ###");
 
-        // Check If Custom Texture Is Enabled
+        // Check if custom texture is enabled
         if (!useCustomTexture) { return; }
 
-        // Checks If Texture Path Is Empty
+        // Check if texture path is empty
         if (textureMapPath == "")
         {
             throw new Exception("The Texture Path is empty. \nEnvironment can not be generated.");
         }
 
-        // Checks If There Is a File At The Given Path
+        // Checks if there is a file at the given path
         if (!File.Exists(textureMapPath))
         {
             throw new Exception($"The Texture at the path \"{textureMapPath}\" does not exist. \nEnvironment can not be generated.");
         }
 
-        // Initilize Texture2D Object Of Our Texture (Height And Width Will Be Overwritten Later)
+        // Initilize Texture2D object of the texture (height and width will be overwritten later)
         Texture2D texture = new Texture2D(1, 1);
 
-        // We Read In The Raw Bytes Of The Heightmap Image And Convert It To Be Able To Handle
-        // Certain Aspects Better (Compression, Width, Height, Bit Depth, Etc.)
+        // Read the raw bytes of the heightmap image and convert it to be able to
+        // handle certain aspects better (compression, width, height, bit depth, etc.)
         texture.LoadImage(File.ReadAllBytes(textureMapPath));
 
         terrain.materialTemplate.mainTexture = RotateTexture(MirrorTexture(MakeItSquare(texture, terrain.terrainData.heightmapResolution), mirrorTexture), rotateXDegrees);
@@ -510,35 +514,35 @@ public class Generator : MonoBehaviour
     {
         Debugger("### Apply Objects ###");
 
-        // Check If Custom Texture Is Enabled
+        // Check if custom texture is enabled
         if (!useCustomObjects) { return; }
 
-        // Checks If Texture Path Is Empty
+        // Check if the texture path is empty
         if (objectsMapPath == "")
         {
             throw new Exception("The Objects Path is empty. \nEnvironment can not be generated.");
         }
 
-        // Checks If There Is a File At The Given Path
+        // Check if there is a file at the given path
         if (!File.Exists(objectsMapPath))
         {
             throw new Exception($"The Texture at the path \"{objectsMapPath}\" does not exist. \nEnvironment can not be generated.");
         }
 
-        // Initilize Texture2D Object Of Our Texture (Height And Width Will Be Overwritten Later)
+        // Initilize Texture2D object of the texture (height and width will be overwritten later)
         Texture2D objectMaptexture = new Texture2D(1, 1);
 
-        // We Read In The Raw Bytes Of The Object Map Image And Convert It To Be Able To Handle
-        // Certain Aspects Better (Compression, Width, Height, Bit Depth, Etc.)
+        // Read the raw bytes of the object map image and convert it to be able to
+        // handle certain aspects better (compression, width, height, bit depth, etc.)
         objectMaptexture.LoadImage(File.ReadAllBytes(objectsMapPath));
         objectMaptexture = RotateTexture(MirrorTexture(MakeItSquare(objectMaptexture, terrain.terrainData.heightmapResolution), mirrorTexture), rotateXDegrees);
 
-        // Calculates The Tile Size Based On The Density
+        // Calculate the tile size based on the density
         int tileSize = (int)Math.Round(objectMaptexture.height / (100 * objectDensity));
 
         Texture2D terrainTexture = (Texture2D)terrain.materialTemplate.mainTexture;
 
-        // Loop through all Pixels And Insert A given Object
+        // Loop through all pixels and insert a given object
         for (int i = 0; i < objectMaptexture.height; i += tileSize)
         {
             for (int y = 0; y < objectMaptexture.width; y += tileSize)
@@ -553,7 +557,7 @@ public class Generator : MonoBehaviour
     }
 
 
-    //Makes The Texture Square
+    //Make the texture square
     private Texture2D MakeItSquare(Texture2D texture, int size)
     {
         // Create a new texture with the calculated size
@@ -579,25 +583,25 @@ public class Generator : MonoBehaviour
         return resizedTexture;
     }
 
-    // Rotates the given Texture a certain Amount of Degrees
+    // Rotates the given texture a certain amount of degrees
     private Texture2D RotateTexture(Texture2D texture, Grad rotateXDegrees)
     {
         if (rotateXDegrees != 0)
         {
             Debugger("### Rotate Texture ###");
 
-            // Goes Through The Rotation Of 90 Degrees The Needed Amount
+            // Goes through the rotation of 90 degrees as often as needed
             for (int x = (int)rotateXDegrees; x > 0; x--)
             {
                 Color32[] originalPixels = texture.GetPixels32();
                 Color32[] rotatedPixels = new Color32[originalPixels.Length];
 
-                // Loop through all Pixels
+                // Loop through all pixels
                 for (int i = 0; i < texture.width; ++i)
                 {
                     for (int y = 0; y < texture.height; ++y)
                     {
-                        // Take a Pixel, Rotate it 90 degrees and Safes it at the new Position
+                        // Take a pixel, rotate it 90 degrees and safe it at the new Position
                         rotatedPixels[(y + 1) * texture.width - i - 1] = originalPixels[originalPixels.Length - 1 - (i * texture.height + y)];
                     }
                 }
@@ -620,12 +624,12 @@ public class Generator : MonoBehaviour
         Color[] originalPixels = texture.GetPixels();
         Color[] mirroredPixels = new Color[originalPixels.Length];
 
-        // Loop through all Pixels
+        // Loop through all pixels
         for (int i = 0; i < texture.width; i++)
         {
             for (int y = 0; y < texture.height; y++)
             {
-                // Take a Pixel, Mirrors it and Safes it at the new Position
+                // Take a pixel, mirror it and safe it at the new position
                 mirroredPixels[i * texture.width + texture.width - y - 1] = originalPixels[i * texture.width + y];
             }
         }
@@ -644,7 +648,7 @@ public class Generator : MonoBehaviour
         Dictionary<Color, int> colorCount = new Dictionary<Color, int>();
         bool wasTerrainTextureChanged = false;
 
-        // Loop Through The Given Tile And Count Which Color Appears The Most
+        // Loop through the given tile and count which color appears the most
         for (int i = start_i; i < Mathf.Min(start_i + tileSize, objectMaptexture.width); i++)
         {
             for (int y = start_y; y < Mathf.Min(start_y + tileSize, objectMaptexture.height); y++)
@@ -670,16 +674,16 @@ public class Generator : MonoBehaviour
             {
                 if (naturalObject.usePrefab)
                 {
-                    // Create An Name The Object
-                    GameObject object = Instantiate(naturalObject.prefab, transform);
-                    object.name = "GeneratedObjectTerraGen_" + naturalObject.name;
+                    // Create and name the object
+                    GameObject natObject = Instantiate(naturalObject.prefab, transform);
+                    natObject.name = "GeneratedObjectTerraGen_" + naturalObject.name;
 
-                    // Choose A Random Position Within Tile
+                    // Choose a random position within the tile
                     int v = UnityEngine.Random.Range(start_i, start_i + tileSize);
                     int w = UnityEngine.Random.Range(start_y, start_y + tileSize);
 
-                    // Insert Object In That Position And Give It The Right Height
-                    object.transform.position = new Vector3(v, terrain.terrainData.GetHeight(v, w), w);
+                    // Insert the object into that position and set the right height
+                    natObject.transform.position = new Vector3(v, terrain.terrainData.GetHeight(v, w), w);
                 }
 
                 if (naturalObject.useTexture)
