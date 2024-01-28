@@ -9,7 +9,7 @@ using System.Linq;
 
 
 /**************************************************************************
-                Date Last Changed: 19.01.2024 - Version 2.4
+                Date Last Changed: 28.01.2024 - Version 2.5
 
 Authors: Frederick Van Bockryck, Jakob Schöllauf, Florian Waltersdorfer
 
@@ -61,9 +61,9 @@ public class Generator : MonoBehaviour
             EditorGUILayout.Space(5);
             generator.showDebugging = EditorGUILayout.Toggle("Show Debugging Messages", generator.showDebugging);
             generator.buildAfterChange = EditorGUILayout.Toggle("Regenerate With Inspector Change", generator.buildAfterChange);
-            generator.showHeightmapSettings = EditorGUILayout.Toggle("Show Heightmap Settings", generator.showHeightmapSettings);
 
             EditorGUILayout.Space(5);
+            generator.showHeightmapSettings = EditorGUILayout.Toggle("Show Heightmap Settings", generator.showHeightmapSettings);
             generator.useCustomTexture = EditorGUILayout.Toggle("Use Custom Texture", generator.useCustomTexture);
             generator.useCustomMaterial = EditorGUILayout.Toggle("Use Custom Material", generator.useCustomMaterial);
             generator.useCustomObjects = EditorGUILayout.Toggle("Use Natural Objects", generator.useCustomObjects);
@@ -90,6 +90,13 @@ public class Generator : MonoBehaviour
                 generator.maximumHeight = EditorGUILayout.DelayedIntField("Maximum Height", generator.maximumHeight);
                 generator.scaleHeight = EditorGUILayout.Slider("Scale Height", generator.scaleHeight, 0f, 1f);
                 generator.invertHeight = EditorGUILayout.Toggle("Invert Height", generator.invertHeight);
+                generator.useBlur = EditorGUILayout.Toggle("Blur Heightmap", generator.useBlur);
+
+                if (generator.useBlur)
+                {
+                    generator.blurRadius = EditorGUILayout.IntSlider("Blur Radius", generator.blurRadius, 1, 10);
+                }
+                
 
 
                 EditorGUI.indentLevel--;
@@ -194,7 +201,8 @@ public class Generator : MonoBehaviour
                         }
                         GUILayout.EndHorizontal();
 
-                        // Texture settings
+                        // Texture settings: high impact on performance
+                        
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.PropertyField(element.FindPropertyRelative("useTexture"), new GUIContent("Use Texture"));
                         if (element.FindPropertyRelative("useTexture").boolValue)
@@ -202,7 +210,7 @@ public class Generator : MonoBehaviour
                             EditorGUILayout.PropertyField(element.FindPropertyRelative("texture"), new GUIContent(""));
                         }
                         GUILayout.EndHorizontal();
-
+                        
 
                         EditorGUILayout.Space(20);            
                     }
@@ -292,6 +300,7 @@ public class Generator : MonoBehaviour
     public bool 
         invertHeight = false,
         mirrorTexture = false,
+        useBlur = false,
         buildAfterChange = false,
         showIndividualObjects = false;
 
@@ -299,9 +308,13 @@ public class Generator : MonoBehaviour
     public int maximumHeight = 300;
 
     [HideInInspector]
+    public int blurRadius = 5;
+
+    [HideInInspector]
     public float 
-        scaleHeight = 1,
-        objectDensity = 1;
+        scaleHeight = 1f,
+        objectDensity = 1f;
+        
 
     [HideInInspector]
     public Grad rotateXDegrees;
@@ -359,22 +372,22 @@ public class Generator : MonoBehaviour
         foreach(Transform tmp in transform) { Destroy(tmp.gameObject); };
 
         // Generate terrain and apply settings based on user-defined parameters
-        Handler(heightMapPath, maximumHeight, invertHeight, scaleHeight, rotateXDegrees, mirrorTexture, useCustomMaterial,
+        Handler(heightMapPath, maximumHeight, invertHeight, useBlur, blurRadius, scaleHeight, rotateXDegrees, mirrorTexture, useCustomMaterial,
             customMaterial, useCustomTexture, textureMapPath, useCustomObjects, naturalObjects, objectsMapPath, objectDensity);
 
         Debugger("Finished Generating");
     }
 
     // This method handles the entire generation process and can be called manually from another script with all available settings
-    public void Handler(string heightMapPath, int maximumHeight = 300, bool invertHeight = false, float scaleHeight = 1, Grad rotateXDegrees = 0, bool mirrorTexture = false,
+    public void Handler(string heightMapPath, int maximumHeight = 300, bool invertHeight = false, bool useBlur = false, int blurRadius = 5, float scaleHeight = 1, Grad rotateXDegrees = 0, bool mirrorTexture = false,
         bool useCustomMaterial = false, Material customMaterial = null, bool useCustomTexture = false, string textureMapPath = "",
         bool useCustomObjects = false, List<Element> naturalObjects = null,  string objectsMapPath = "", float objectDensity = 0.25f)
     {
         try
         {
             // Load the heightmap texture from the specified path
-            Texture2D heightmap = LoadHeightmap(heightMapPath);
-
+            Texture2D heightmap;
+            if (useBlur) { heightmap = GaussianBlur(LoadHeightmap(heightMapPath), blurRadius); } else { heightmap = LoadHeightmap(heightMapPath); }
             // Create terrain and apply Objects
             Terrain terrain = CreateTerrain(heightmap, maximumHeight);
 
@@ -515,7 +528,8 @@ public class Generator : MonoBehaviour
         texture.LoadImage(File.ReadAllBytes(textureMapPath));
 
         // Apply the rotated and mirrored texture to the Terrain object
-        terrain.materialTemplate.mainTexture = RotateTexture(MirrorTexture(MakeItSquare(texture, terrain.terrainData.heightmapResolution), mirrorTexture), rotateXDegrees);
+        // For some reason the texture needs to be rotated by 90 degrees and mirrored to be applied in the correct orientation
+        terrain.materialTemplate.mainTexture = RotateTexture(MirrorTexture(RotateTexture(MirrorTexture(MakeItSquare(texture, terrain.terrainData.heightmapResolution), mirrorTexture), rotateXDegrees), true), Grad._90);
 
         Debugger("Texture was applied.");
     }
@@ -545,7 +559,8 @@ public class Generator : MonoBehaviour
 
         // Read raw bytes of the object map image and convert for better handling
         objectMaptexture.LoadImage(File.ReadAllBytes(objectsMapPath));
-        objectMaptexture = RotateTexture(MirrorTexture(MakeItSquare(objectMaptexture, terrain.terrainData.heightmapResolution), mirrorTexture), rotateXDegrees);
+        objectMaptexture = MakeItSquare(objectMaptexture, terrain.terrainData.heightmapResolution);
+
 
         // Calculate the tile size based on the density
         int tileSize = (int)Math.Round(objectMaptexture.height / (100 * objectDensity));
@@ -675,7 +690,7 @@ public class Generator : MonoBehaviour
             for (int y = start_y; y < Mathf.Min(start_y + tileSize, objectMaptexture.height); y++)
             {
                 // Get the color of each pixel within the tile
-                Color pixelColor = objectMaptexture.GetPixel(start_y + y, start_i + i);
+                Color pixelColor = objectMaptexture.GetPixel(y, i);
 
                 // Update the color count in the dictionary
                 if (colorCount.ContainsKey(pixelColor))
@@ -723,6 +738,86 @@ public class Generator : MonoBehaviour
 
         // Return a tuple indicating whether the terrain texture was changed and the updated texture
         return Tuple.Create(wasTerrainTextureChanged, terrainTexture);
+    }
+
+    // Method to apply GaussianBlur to a texture
+    public Texture2D GaussianBlur(Texture2D texture, int radius = 3)
+    {
+        int w = texture.width;
+        int h = texture.height;
+
+        Texture2D blurredTexture = new Texture2D(w, h, texture.format, false);
+
+        float[,] kernel = GenerateKernel(radius);
+        int kernelSize = kernel.GetLength(0);
+        int kernelRadius = kernelSize / 2;
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float sumRed = 0;
+                float sumGreen = 0;
+                float sumBlue = 0;
+                float sumAlpha = 0;
+                float weightSum = 0;
+
+                for (int kernelY = -kernelRadius; kernelY <= kernelRadius; kernelY++)
+                {
+                    int pixelY = Mathf.Clamp(y + kernelY, 0, h - 1);
+
+                    for (int kernelX = -kernelRadius; kernelX <= kernelRadius; kernelX++)
+                    {
+                        int pixelX = Mathf.Clamp(x + kernelX, 0, w - 1);
+
+                        Color pixelColor = texture.GetPixel(pixelX, pixelY);
+
+                        float weight = kernel[kernelY + kernelRadius, kernelX + kernelRadius];
+
+                        sumRed += pixelColor.r * weight;
+                        sumGreen += pixelColor.g * weight;
+                        sumBlue += pixelColor.b * weight;
+                        sumAlpha += pixelColor.a * weight;
+                        weightSum += weight;
+                    }
+                }
+
+                Color blurredColor = new Color(sumRed / weightSum, sumGreen / weightSum, sumBlue / weightSum, sumAlpha / weightSum);
+                blurredTexture.SetPixel(x, y, blurredColor);
+            }
+        }
+
+        blurredTexture.Apply();
+        return blurredTexture;
+    }
+
+    private float[,] GenerateKernel(int radius)
+    {
+        int size = 2 * radius + 1;
+        float[,] kernel = new float[size, size];
+        float sigma = radius / 2.0f;
+        float sum = 0;
+
+        for (int y = -radius; y <= radius; y++)
+        {
+            for (int x = -radius; x <= radius; x++)
+            {
+                float exponent = -(x * x + y * y) / (2 * sigma * sigma);
+                kernel[y + radius, x + radius] = Mathf.Exp(exponent) / (2 * Mathf.PI * sigma * sigma);
+                sum += kernel[y + radius, x + radius];
+            }
+        }
+
+        // Normalize the kernel
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                kernel[y, x] /= sum;
+            }
+        }
+
+        return kernel;
     }
 
     // Method to apply a brush stroke to a texture
