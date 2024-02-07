@@ -14,7 +14,7 @@ using System.Linq;
 Authors: Frederick Van Bockryck, Jakob Schöllauf, Florian Waltersdorfer
 
 This C# script enables the quick and easy generation of terrain in Unity
-based on hightmaps. Additionally it allows the aplication of a custom
+based on hightmaps. Additionally it allows the application of a custom
 texture and material to the terrain as well as populating the terrain with
 objects designated by the user.
 
